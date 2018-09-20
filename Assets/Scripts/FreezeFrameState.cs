@@ -147,25 +147,36 @@ public class FreezeFrameState : MonoBehaviour {
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            Color renderColor = r.material.color;
-            renderColor.a = a;
-            r.material.color = renderColor;
+            if(r != null)
+            {
+                Color renderColor = r.material.color;
+                renderColor.a = a;
+                r.material.color = renderColor;
+            }            
         }
         if (!fadingIn)
         {
             foreach (Renderer r in m_endFadeOnlyRenderers)
             {
-                Color renderColor = r.material.color;
-                renderColor.a = a;
-                r.material.color = renderColor;
+                if(r != null)
+                {
+                    Color renderColor = r.material.color;
+                    renderColor.a = a;
+                    r.material.color = renderColor;
+                }
+                
             }
         } else
         {
             foreach (Renderer r in m_startFadeOnlyRenderers)
             {
-                Color renderColor = r.material.color;
-                renderColor.a = a;
-                r.material.color = renderColor;
+                if (r != null)
+                {
+                    Color renderColor = r.material.color;
+                    renderColor.a = a;
+                    r.material.color = renderColor;
+                }
+                
             }
         }
     }
@@ -275,11 +286,17 @@ public class FreezeFrameState : MonoBehaviour {
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+            if(r != null)
+            {
+                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+            }
         }
         foreach (Renderer r in m_startFadeOnlyRenderers)
         {
-            StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+            if(r != null)
+            {
+                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+            }
         }
     }
 
@@ -287,15 +304,24 @@ public class FreezeFrameState : MonoBehaviour {
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            if(r != null)
+            {
+                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            }
         }
         foreach (Renderer r in m_endFadeOnlyRenderers)
         {
-            StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            if(r != null)
+            {
+                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            }
         }
         foreach (Renderer r in m_startFadeOnlyRenderers)
         {
-            StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            if(r != null)
+            {
+                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
+            }
         }
     }
     #endregion

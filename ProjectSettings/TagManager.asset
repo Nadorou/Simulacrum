@@ -18,6 +18,11 @@ TagManager:
   - Head
   - BasicSnappable
   - SecondarySnappable
+  - SimHead
+  - SimLLeg
+  - SimRLeg
+  - SimRArm
+  - SimLArm
   layers:
   - Default
   - TransparentFX
