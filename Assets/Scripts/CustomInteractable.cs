@@ -35,12 +35,12 @@ public class CustomInteractable : VRTK_InteractableObject {
         InteractableObjectGrabbed -= OnGrabbed;
     }
 
-    protected void OnFrameStarted(FreezeFrameState frame)
+    protected virtual void OnFrameStarted(FreezeFrameState frame)
     {
         GameManager.HapticCueEvent += OnHapticCue;
     }
 
-    protected void OnFrameEnded(FreezeFrameState frame)
+    protected virtual void OnFrameEnded(FreezeFrameState frame)
     {
         GameManager.HapticCueEvent -= OnHapticCue;
     }

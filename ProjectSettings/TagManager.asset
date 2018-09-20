@@ -17,6 +17,7 @@ TagManager:
   - SnapSaucer
   - Head
   - BasicSnappable
+  - SecondarySnappable
   layers:
   - Default
   - TransparentFX
