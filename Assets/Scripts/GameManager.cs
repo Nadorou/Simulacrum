@@ -23,6 +23,8 @@ public class GameManager : MonoBehaviour {
     private AudioClip m_hapticCueNoise;
     private bool m_runHapticGrabCue = false;
 
+    public VRTK_PolicyList m_teleportPolicyList;
+
     public static event AudioClipEventHandler HapticCueEvent;
 
     private void Awake()
@@ -67,6 +69,7 @@ public class GameManager : MonoBehaviour {
 
     private IEnumerator RunExitSequence()
     {
+        DisableTeleporting();
         SteamVR_Fade.Start(Color.black, m_startupFadeDuration);
         yield return new WaitForSeconds(m_startupFadeDuration);
         Debug.Log("Application Quit Executed");
@@ -92,6 +95,7 @@ public class GameManager : MonoBehaviour {
 
     private IEnumerator SceneSwitchProgression(SceneManager oldScene, SceneManager newScene, float fadeTime)
     {
+        DisableTeleporting();
         //Fade camera out
         newScene.OnSceneSwitchTriggered();
         SteamVR_Fade.Start(Color.black, fadeTime);
@@ -106,6 +110,7 @@ public class GameManager : MonoBehaviour {
         //Fade back in
         SteamVR_Fade.Start(Color.clear, fadeTime);
         yield return new WaitForSeconds(fadeTime);
+        EnableTeleporting();
         newScene.OnSceneSwitchFinished();
     }
     #endregion
@@ -189,5 +194,17 @@ public class GameManager : MonoBehaviour {
     public void DispossessIKRig()
     {
         //This will be called when we want to dispossess the simulacra
+    }
+
+    private void DisableTeleporting()
+    {
+        m_teleportPolicyList.identifiers = new List<string>();
+    }
+
+    private void EnableTeleporting()
+    {
+        List<string> identifiers = new List<string>();
+        identifiers.Add("TeleportSurface");
+        m_teleportPolicyList.identifiers = identifiers;
     }
 }
