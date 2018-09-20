@@ -15,14 +15,22 @@ public class SceneManager : MonoBehaviour {
     public event SceneManagerEvent SceneSwitchTriggered;
     public event SceneManagerEvent SceneSwitchFinished;
 
+    private void Awake()
+    {
+        DisableScene();
+    }
+
     public void DisableScene()
     {
-        m_sceneParent.SetActive(false);
+        gameObject.SetActive(false);
     }
 
     public void EnableScene()
     {
+        gameObject.SetActive(true);
         m_sceneParent.SetActive(true);
+        m_startFreezeFrame.gameObject.SetActive(true);
+        m_startFreezeFrame.StartFreezeFrameProgression();
     }
 
     public void OnSceneSwitchTriggered()

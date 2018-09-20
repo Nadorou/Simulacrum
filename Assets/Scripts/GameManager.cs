@@ -57,7 +57,8 @@ public class GameManager : MonoBehaviour {
     }
 
     private IEnumerator RunStartup()
-    {
+    {        
+        m_currentScene.EnableScene();
         m_currentFreezeFrameState = m_currentScene.m_startFreezeFrame;
         SteamVR_Fade.Start(Color.black, 0f);
         yield return null;

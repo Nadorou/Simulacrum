@@ -41,6 +41,8 @@ public class FreezeFrameState : MonoBehaviour {
     protected Renderer[] m_endFadeOnlyRenderers;
     protected Renderer[] m_startFadeOnlyRenderers;
 
+    [Header("Debug only")]
+    [SerializeField]
     protected bool m_isInteractiveFrame = false;
 
     public event FreezeFrameEvent FrameEnded;
@@ -56,22 +58,16 @@ public class FreezeFrameState : MonoBehaviour {
     protected virtual void SetupFreezeFrame()
     {
         CreateRenderArray();
-
+        if (m_AutoProgressFrame == null && !m_isEndFrame)
+        {
+            m_isInteractiveFrame = true;
+        }
         if (!m_isStartFrame)
         {
             SetTransparent();
             SetFrameAlpha(0, true);
             gameObject.SetActive(false);
-        } else
-        {
-            if (m_AutoProgressFrame != null)
-            {
-                StartCoroutine(WaitForNextFrame());
-            } else if (!m_isEndFrame)
-            {
-                m_isInteractiveFrame = true;
-            }
-        }
+        }        
     }
 
     protected void CreateRenderArray()
@@ -79,6 +75,18 @@ public class FreezeFrameState : MonoBehaviour {
         m_freezeFrameRenderers = m_freezeFrameObjectParent.GetComponentsInChildren<Renderer>();
         m_endFadeOnlyRenderers = m_endFadeOnlyParent.GetComponentsInChildren<Renderer>();
         m_startFadeOnlyRenderers = m_startFadeOnlyParent.GetComponentsInChildren<Renderer>();
+    }
+
+    public virtual void StartFreezeFrameProgression()
+    {
+        if(m_AutoProgressFrame != null)
+        {
+            StartCoroutine(WaitForNextFrame());
+        }
+        if (m_isInteractiveFrame)
+        {
+            OnInteractiveFrameStarted();
+        }
     }
 
     public virtual void StartFrame(float fadeDuration)

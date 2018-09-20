@@ -5,7 +5,12 @@ using VRTK;
 
 public class CustomInteractable : VRTK_InteractableObject {
 
+    [Header("Custom Interactable Settings")]
+    [SerializeField][Tooltip("Optional game object that becomes disabled upon the user first grabbing the object")]
+    private GameObject m_attentionObject;
+
     public static event InteractableObjectEventHandler CustomInteractableGrabbed;
+    
 
     private FreezeFrameState m_freezeFrameParent;
     private AudioSource m_audioSource;
@@ -57,6 +62,14 @@ public class CustomInteractable : VRTK_InteractableObject {
 
     private void OnGrabbed(object sender, InteractableObjectEventArgs e)
     {
+        if(m_attentionObject != null)
+        {
+            if (m_attentionObject.activeSelf)
+            {
+                m_attentionObject.SetActive(false);
+            }
+        }
+
         if(CustomInteractableGrabbed != null)
         {
             CustomInteractableGrabbed(sender, e);
