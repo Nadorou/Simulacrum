@@ -7,6 +7,8 @@ public delegate void AudioClipEventHandler(object sender, AudioClip clip);
 
 public class GameManager : MonoBehaviour {
 
+    public GameObject hand;
+
     public static GameManager instance;
 
     public SceneManager m_currentScene;
@@ -26,6 +28,8 @@ public class GameManager : MonoBehaviour {
     public VRTK_PolicyList m_teleportPolicyList;
 
     public static event AudioClipEventHandler HapticCueEvent;
+
+    private bool m_rigIsPossessed = false;
 
     private void Awake()
     {
@@ -51,11 +55,6 @@ public class GameManager : MonoBehaviour {
     private void Start()
     {        
         StartCoroutine(RunStartup());
-    }
-
-    private void Update()
-    {
-              
     }
 
     private IEnumerator RunStartup()
@@ -94,13 +93,17 @@ public class GameManager : MonoBehaviour {
     }
 
     private IEnumerator SceneSwitchProgression(SceneManager oldScene, SceneManager newScene, float fadeTime)
-    {
+    {        
         DisableTeleporting();
         //Fade camera out
         newScene.OnSceneSwitchTriggered();
         SteamVR_Fade.Start(Color.black, fadeTime);
         yield return new WaitForSeconds(fadeTime);
 
+        if (m_rigIsPossessed)
+        {
+            DispossessIKRig();
+        }
         //Fade completed, setup the new scene
         oldScene.DisableScene();
         newScene.EnableScene();
@@ -186,14 +189,54 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    public void PossessIKRig()
+    public void PossessIKRig(GameObject riggedObject, GameObject removeObject = null)
     {
-        //This will be called when we want to possess the simulacra
+        //This will be called when we want to possess the simulacra      
+        StartCoroutine(PossessionSequence(riggedObject, 4f, removeObject));        
     }
 
     public void DispossessIKRig()
     {
         //This will be called when we want to dispossess the simulacra
+        ToggleHands(true);
+        m_rigIsPossessed = false;
+    }
+
+    private IEnumerator PossessionSequence(GameObject rig, float fadeTime, GameObject removeObject)
+    {        
+        DisableTeleporting();
+        SteamVR_Fade.Start(Color.black, fadeTime);
+        yield return new WaitForSeconds(fadeTime);
+
+        ToggleHands(false);
+        rig.SetActive(true);
+        if(removeObject != null)
+        {
+            removeObject.SetActive(false);
+        }
+        m_rigIsPossessed = true;
+
+        Color m_simColor = new Color(0.2f, 0, 0, 0.2f);
+        SteamVR_Fade.Start(m_simColor, fadeTime);
+        yield return new WaitForSeconds(fadeTime);
+        EnableTeleporting();        
+    }
+
+    private void ToggleHands(bool state)
+    {
+        GameObject rightHand = VRTK_DeviceFinder.GetModelAliasController(VRTK_DeviceFinder.GetControllerRightHand());
+        GameObject leftHand = VRTK_DeviceFinder.GetModelAliasController(VRTK_DeviceFinder.GetControllerLeftHand());
+        if (state)
+        {
+            VRTK_ObjectAppearance.SetRendererVisible(rightHand);
+            VRTK_ObjectAppearance.SetRendererVisible(leftHand);
+        } else
+        {
+            hand = rightHand;
+            VRTK_ObjectAppearance.SetRendererHidden(rightHand);
+            VRTK_ObjectAppearance.SetRendererHidden(leftHand);
+        }
+
     }
 
     private void DisableTeleporting()

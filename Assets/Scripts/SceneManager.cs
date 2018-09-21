@@ -12,6 +12,8 @@ public class SceneManager : MonoBehaviour {
 
     public SceneManager m_nextScene;
 
+    public AudioClip m_sceneMusic;
+
     public event SceneManagerEvent SceneSwitchTriggered;
     public event SceneManagerEvent SceneSwitchFinished;
 

@@ -10,6 +10,9 @@ public class SnapZoneEvent : VRTK_SnapDropZone {
     public float m_eventTime;
     public bool m_disableOnSnap;
 
+    [Header("For possession only")]
+    public GameObject m_objectToDisable;
+
     protected override void Awake()
     {
         base.Awake();
@@ -43,9 +46,9 @@ public class SnapZoneEvent : VRTK_SnapDropZone {
         GameManager.instance.NewFreezeFrame(frame, m_eventTime);
     }
 
-    public virtual void CallForSimulacraPossession()
+    public virtual void CallForSimulacraPossession(GameObject riggedObject)
     {
-        GameManager.instance.PossessIKRig();
+        GameManager.instance.PossessIKRig(riggedObject, m_objectToDisable);
     }
     #endregion
 }
