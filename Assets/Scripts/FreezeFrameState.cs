@@ -15,9 +15,9 @@ public class FreezeFrameState : MonoBehaviour {
     [SerializeField]
     protected GameObject m_noFadeParent;
 
-    public bool m_isStartFrame = false;
-    public bool m_isEndFrame = false;
-    public FreezeFrameState m_AutoProgressFrame;
+    public bool isStartFrame = false;
+    public bool isEndFrame = false;
+    public FreezeFrameState autoProgressFrame;
     [SerializeField]
     private float m_AutoProgressDelay = 15f;
 
@@ -33,17 +33,22 @@ public class FreezeFrameState : MonoBehaviour {
         }
     }
 
+    [Header("Point of interest mechanic")]
     [SerializeField]
     protected Transform m_poi;
+    [SerializeField]
+    protected string m_poiSound = "exhale";
 
     protected bool m_isFading = false;
     protected Renderer[] m_freezeFrameRenderers;
     protected Renderer[] m_endFadeOnlyRenderers;
     protected Renderer[] m_startFadeOnlyRenderers;
 
-    [Header("Debug only")]
     [SerializeField]
     protected bool m_isInteractiveFrame = false;
+
+    [Header("Debug")]
+    public Renderer[] renderList;
 
     public event FreezeFrameEvent FrameEnded;
     public event FreezeFrameEvent FrameStarted;
@@ -58,13 +63,13 @@ public class FreezeFrameState : MonoBehaviour {
     protected virtual void SetupFreezeFrame()
     {
         CreateRenderArray();
-        if (m_AutoProgressFrame == null && !m_isEndFrame)
+        if (autoProgressFrame == null && !isEndFrame)
         {
             m_isInteractiveFrame = true;
         }
-        if (!m_isStartFrame)
+        if (!isStartFrame)
         {
-            SetTransparent();
+            SetTransparent(true);
             SetFrameAlpha(0, true);
             gameObject.SetActive(false);
         }        
@@ -75,18 +80,23 @@ public class FreezeFrameState : MonoBehaviour {
         m_freezeFrameRenderers = m_freezeFrameObjectParent.GetComponentsInChildren<Renderer>();
         m_endFadeOnlyRenderers = m_endFadeOnlyParent.GetComponentsInChildren<Renderer>();
         m_startFadeOnlyRenderers = m_startFadeOnlyParent.GetComponentsInChildren<Renderer>();
+
+        renderList = m_freezeFrameRenderers;
     }
 
     public virtual void StartFreezeFrameProgression()
     {
-        if(m_AutoProgressFrame != null)
+        if(autoProgressFrame != null)
         {
             StartCoroutine(WaitForNextFrame());
         }
         if (m_isInteractiveFrame)
         {
+            Debug.Log("Called from startfreezeframe");
             OnInteractiveFrameStarted();
         }
+
+        OnFrameStarted();
     }
 
     public virtual void StartFrame(float fadeDuration)
@@ -102,11 +112,12 @@ public class FreezeFrameState : MonoBehaviour {
         FadeIn(fadeDuration);
         if(m_poi != null)
         {
-            GameManager.instance.PoIEffect(m_poi.position);
+            GameManager.instance.PoIEffect(m_poi.position, m_poiSound);
         }
 
         if (m_isInteractiveFrame)
         {
+            Debug.Log("Called from start frame");
             OnInteractiveFrameStarted();
         }
 
@@ -127,10 +138,10 @@ public class FreezeFrameState : MonoBehaviour {
         yield return new WaitForSeconds(m_AutoProgressDelay);
         if (m_useOwnFadeTime)
         {
-            GameManager.instance.NewFreezeFrame(m_AutoProgressFrame, m_fadeTime);
+            GameManager.instance.NewFreezeFrame(autoProgressFrame, m_fadeTime);
         } else
         {
-            GameManager.instance.NewFreezeFrame(m_AutoProgressFrame);
+            GameManager.instance.NewFreezeFrame(autoProgressFrame);
         }
     }
 
@@ -147,7 +158,7 @@ public class FreezeFrameState : MonoBehaviour {
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            if(r != null)
+            if(r != null && (!r.material.name.Contains("Mat_HighlightObject") || !fadingIn))
             {
                 Color renderColor = r.material.color;
                 renderColor.a = a;
@@ -170,7 +181,7 @@ public class FreezeFrameState : MonoBehaviour {
         {
             foreach (Renderer r in m_startFadeOnlyRenderers)
             {
-                if (r != null)
+                if (r != null && !r.material.name.Contains("Mat_HighlightObject"))
                 {
                     Color renderColor = r.material.color;
                     renderColor.a = a;
@@ -216,18 +227,16 @@ public class FreezeFrameState : MonoBehaviour {
             {
                 SetOpaque();
             }
-            if (m_isEndFrame)
+            if (isEndFrame)
             {
                 StartCoroutine(DelayedSceneProgression());
-            } else if (m_AutoProgressFrame != null)
+            } else if (autoProgressFrame != null)
             {
                 StartCoroutine(WaitForNextFrame());
             }
-            Debug.Log("A fade in was completed");
         } else
         {
             gameObject.SetActive(false);
-            Debug.Log("A fade out was completed");
         }
         
     }
@@ -240,7 +249,6 @@ public class FreezeFrameState : MonoBehaviour {
     /// <returns></returns>
     protected virtual IEnumerator RunFade(bool fadingIn, float duration)
     {
-        Debug.Log("Fade started");
         m_isFading = true;
         float transparency;
         float timeSpent = 0f;
@@ -249,7 +257,7 @@ public class FreezeFrameState : MonoBehaviour {
 
         if (!fadingIn)
         {
-            SetTransparent();
+            SetTransparent(false);
         }
 
         while (!fadeComplete)
@@ -282,43 +290,56 @@ public class FreezeFrameState : MonoBehaviour {
         FadeCompleted(fadingIn);
     }
 
-    protected void SetTransparent()
+    protected void SetTransparent(bool fadingIn)
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            if(r != null)
+            if(r != null && !r.material.name.Contains("Mat_HighlightObject"))
             {
                 StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
             }
         }
-        foreach (Renderer r in m_startFadeOnlyRenderers)
+        if (fadingIn)
         {
-            if(r != null)
+            foreach (Renderer r in m_startFadeOnlyRenderers)
             {
-                StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+                if (r != null && !r.material.name.Contains("Mat_HighlightObject"))
+                {
+                    StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+                }
+            }
+        } else
+        {
+            foreach (Renderer r in m_endFadeOnlyRenderers)
+            {
+                if (r != null && !r.material.name.Contains("Mat_HighlightObject"))
+                {
+                    StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Fade);
+                }
             }
         }
+        
     }
 
     protected void SetOpaque()
     {
         foreach (Renderer r in m_freezeFrameRenderers)
         {
-            if(r != null)
+            if(r != null && !r.material.name.Contains("Mat_HighlightObject"))
             {
                 StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
             }
         }
         foreach (Renderer r in m_endFadeOnlyRenderers)
         {
-            if(r != null)
+            if(r != null && !r.material.name.Contains("Mat_HighlightObject"))
             {
                 StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
             }
         }
         foreach (Renderer r in m_startFadeOnlyRenderers)
         {
-            if(r != null)
+            if(r != null && !r.material.name.Contains("Mat_HighlightObject"))
             {
                 StandardShaderUtils.ChangeRenderMode(r.material, StandardShaderUtils.BlendMode.Opaque);
             }
@@ -345,6 +366,7 @@ public class FreezeFrameState : MonoBehaviour {
 
     protected void OnInteractiveFrameStarted()
     {
+        Debug.Log("OnInteractiveFrameStarted called on " + gameObject.name);
         if(InteractiveFrameStarted != null)
         {
             InteractiveFrameStarted(this);

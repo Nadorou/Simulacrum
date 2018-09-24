@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 
 public class AudioManager : MonoBehaviour {
 
@@ -14,11 +15,19 @@ public class AudioManager : MonoBehaviour {
     }
 
     [SerializeField]
+    private AudioMixer m_audioMixer;
+
+    [SerializeField]
+    private AudioSource m_musicSource;
+
+    [SerializeField]
     [Tooltip("Every key needs to be unique")]
     private KeyedAudioHolder[] audioClips;
-
     //This is the dict that we access to grab a given audio clip by its key. It is populated on Start().
     public Dictionary<string, AudioClip> audioDict = new Dictionary<string, AudioClip>();
+
+    private Coroutine m_musicFaderCR;
+    private float m_musicFadeVolume = 0f;
 
     private void Awake()
     {
@@ -73,6 +82,54 @@ public class AudioManager : MonoBehaviour {
     public void PlayAudioClip(AudioClip clip, AudioSource source)
     {
         source.PlayOneShot(clip);
+    }
+
+    public void FadeOutMusic(float time)
+    {
+        FadeRoutineCheck();
+
+        StartCoroutine(FadeMusic(m_musicFadeVolume, 0f, time));
+    }
+
+    public void FadeInMusic(float time)
+    {
+        FadeRoutineCheck();
+
+        StartCoroutine(FadeMusic(m_musicFadeVolume, 1f, time));
+    }
+
+    public void SwapMusicAndFade(AudioClip musicClip, float time)
+    {
+        m_musicSource.Stop();
+
+        if(musicClip != null)
+        {
+            m_musicSource.clip = musicClip;
+            m_musicSource.Play();            
+        }
+
+        FadeInMusic(time);
+    }
+
+    private IEnumerator FadeMusic(float fadeFrom, float fadeTo, float fadeTime)
+    {
+        float timeSpent = 0;
+
+        while(timeSpent < fadeTime)
+        {
+            timeSpent += Time.deltaTime;
+            m_musicFadeVolume = Mathf.Lerp(fadeFrom, fadeTo, timeSpent / fadeTime);
+            m_audioMixer.SetFloat("MusicFader", ConvertLinearVolumeToDecibels(m_musicFadeVolume));
+            yield return null;
+        }
+    }
+
+    private void FadeRoutineCheck()
+    {
+        if (m_musicFaderCR != null)
+        {
+            StopCoroutine(m_musicFaderCR);
+        }
     }
 
     private bool DoesRequestedClipExist(string audioKey)

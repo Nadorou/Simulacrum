@@ -405,7 +405,8 @@ namespace VRTK
 
         protected virtual void ReleaseBlink()
         {
-            VRTK_SDK_Bridge.HeadsetFade(Color.clear, fadeInTime);
+            if(fadeInTime > 0f)
+                VRTK_SDK_Bridge.HeadsetFade(Color.clear, fadeInTime);
             fadeInTime = 0f;
         }
 

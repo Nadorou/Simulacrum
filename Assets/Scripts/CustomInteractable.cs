@@ -8,6 +8,9 @@ public class CustomInteractable : VRTK_InteractableObject {
     [Header("Custom Interactable Settings")]
     [SerializeField][Tooltip("Optional game object that becomes disabled upon the user first grabbing the object")]
     private GameObject m_attentionObject;
+    private Light m_attentionLight;
+    private float m_lightMax;
+    private float m_lightMin;
 
     public static event InteractableObjectEventHandler CustomInteractableGrabbed;
     
@@ -27,6 +30,17 @@ public class CustomInteractable : VRTK_InteractableObject {
         {
             m_freezeFrameParent.FrameStarted += OnFrameStarted;
             m_freezeFrameParent.FrameEnded += OnFrameEnded;
+        }
+        if(m_attentionObject != null)
+        {
+            m_attentionLight = m_attentionObject.GetComponent<Light>();
+            if(m_attentionLight != null)
+            {
+                m_lightMax = m_attentionLight.intensity;
+                m_lightMin = m_lightMax / 10;
+
+                m_attentionLight.intensity = m_lightMin;
+            }
         }
     }
 
@@ -49,7 +63,38 @@ public class CustomInteractable : VRTK_InteractableObject {
     {
         if(m_audioSource != null)
         {
+            Debug.Log("Interactable object received cue to play " + clip.name);
             m_audioSource.PlayOneShot(clip);
+        }
+
+        if(m_attentionLight != null)
+        {
+            StartCoroutine(LightPulse(5f, m_lightMin, m_lightMax));
+        }
+    }
+
+    private IEnumerator LightPulse(float pulseTime, float intensityMin, float intensityMax)
+    {
+        float halfPulse = pulseTime / 2;
+
+        float timeSpent = 0;
+
+        while (timeSpent < halfPulse)
+        {
+            timeSpent += Time.deltaTime;
+
+            m_attentionLight.intensity = Mathf.Lerp(intensityMin, intensityMax, timeSpent / halfPulse);
+            yield return null;
+        }
+
+        timeSpent = 0;
+
+        while (timeSpent < halfPulse)
+        {
+            timeSpent += Time.deltaTime;
+
+            m_attentionLight.intensity = Mathf.Lerp(intensityMax, intensityMin, timeSpent / halfPulse);
+            yield return null;
         }
     }
 
@@ -66,7 +111,7 @@ public class CustomInteractable : VRTK_InteractableObject {
         {
             if (m_attentionObject.activeSelf)
             {
-                m_attentionObject.SetActive(false);
+                //m_attentionObject.SetActive(false);
             }
         }
 

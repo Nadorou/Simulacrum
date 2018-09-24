@@ -23,9 +23,12 @@ public class GameManager : MonoBehaviour {
 
     [SerializeField]
     private AudioClip m_hapticCueNoise;
+    [SerializeField]
+    private AudioClip m_PossessionMusic;
     private bool m_runHapticGrabCue = false;
 
     public VRTK_PolicyList m_teleportPolicyList;
+    private VRTK_BasicTeleport m_teleporter;
 
     public static event AudioClipEventHandler HapticCueEvent;
 
@@ -42,6 +45,11 @@ public class GameManager : MonoBehaviour {
             Destroy(gameObject);
         }
 
+        if(m_teleportPolicyList != null)
+        {
+            m_teleporter = m_teleportPolicyList.gameObject.GetComponent<VRTK_BasicTeleport>();
+        }
+
         FreezeFrameState.InteractiveFrameStarted += OnInteractiveFrameStarted;
         CustomInteractable.CustomInteractableGrabbed += OnInteractableGrabbed;
     }
@@ -53,23 +61,29 @@ public class GameManager : MonoBehaviour {
     }
 
     private void Start()
-    {        
+    {
         StartCoroutine(RunStartup());
     }
 
     private IEnumerator RunStartup()
-    {        
+    {
+        yield return null;
         m_currentScene.EnableScene();
         m_currentFreezeFrameState = m_currentScene.m_startFreezeFrame;
-        SteamVR_Fade.Start(Color.black, 0f);
-        yield return null;
+        SteamVR_Fade.Start(Color.black, 0);
         SteamVR_Fade.Start(Color.clear, m_startupFadeDuration);
+        AudioManager.instance.FadeInMusic(m_startupFadeDuration);
+        DisableTeleporting();
+        yield return new WaitForSeconds(m_startupFadeDuration);
+        EnableTeleporting();
     }
 
     private IEnumerator RunExitSequence()
     {
         DisableTeleporting();
         SteamVR_Fade.Start(Color.black, m_startupFadeDuration);
+        yield return new WaitForSeconds(5f);
+        AudioManager.instance.FadeOutMusic(m_startupFadeDuration);
         yield return new WaitForSeconds(m_startupFadeDuration);
         Debug.Log("Application Quit Executed");
         Application.Quit();
@@ -98,8 +112,9 @@ public class GameManager : MonoBehaviour {
         //Fade camera out
         newScene.OnSceneSwitchTriggered();
         SteamVR_Fade.Start(Color.black, fadeTime);
+        AudioManager.instance.FadeOutMusic(fadeTime);
         yield return new WaitForSeconds(fadeTime);
-
+        yield return new WaitForSeconds(5f);
         if (m_rigIsPossessed)
         {
             DispossessIKRig();
@@ -112,6 +127,7 @@ public class GameManager : MonoBehaviour {
 
         //Fade back in
         SteamVR_Fade.Start(Color.clear, fadeTime);
+        AudioManager.instance.SwapMusicAndFade(newScene.m_sceneMusic, fadeTime);
         yield return new WaitForSeconds(fadeTime);
         EnableTeleporting();
         newScene.OnSceneSwitchFinished();
@@ -135,13 +151,18 @@ public class GameManager : MonoBehaviour {
 
     public void PoIEffect(Vector3 poiPosition)
     {
+        PoIEffect(poiPosition, "exhale");
+    }
+
+    public void PoIEffect(Vector3 poiPosition, string audioKey)
+    {
         m_poiSource.transform.position = poiPosition;
-        AudioManager.instance.RequestAudio("exhale", m_poiSource);
+        AudioManager.instance.RequestAudio(audioKey, m_poiSource);
     }
 
     private void OnInteractiveFrameStarted(FreezeFrameState sender)
     {
-        StartCoroutine(HapticPulseLoop(sender.fadeTime));
+        StartCoroutine(HapticPulseLoop(10f));
     }
 
     private void OnObjectGrabbed(object sender, InteractableObjectEventArgs e)
@@ -158,7 +179,7 @@ public class GameManager : MonoBehaviour {
         while (m_runHapticGrabCue)
         {
             TriggerHapticPulse();
-            yield return new WaitForSeconds(8f);
+            yield return new WaitForSeconds(15f);
         }
     }
 
@@ -175,10 +196,15 @@ public class GameManager : MonoBehaviour {
     {
         foreach (KeyValuePair<uint, VRTK_ControllerReference> controller in VRTK_ControllerReference.controllerReferences)
         {
-            VRTK_ControllerHaptics.TriggerHapticPulse(controller.Value, m_hapticCueNoise);
+            VRTK_ControllerHaptics.TriggerHapticPulse(controller.Value, 0.8f, 1f, 0.01f);
         }
 
         OnHapticCueEvent(m_hapticCueNoise);
+    }
+
+    public void OneShotHapticPulse(VRTK_ControllerReference controller)
+    {
+        VRTK_ControllerHaptics.TriggerHapticPulse(controller, 0.8f, 1f, 0.01f);
     }
 
     private void OnHapticCueEvent(AudioClip clip)
@@ -189,7 +215,7 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    public void PossessIKRig(GameObject riggedObject, GameObject removeObject = null)
+    public void PossessIKRig(GameObject riggedObject, GameObject[] removeObject = null)
     {
         //This will be called when we want to possess the simulacra      
         StartCoroutine(PossessionSequence(riggedObject, 4f, removeObject));        
@@ -200,26 +226,34 @@ public class GameManager : MonoBehaviour {
         //This will be called when we want to dispossess the simulacra
         ToggleHands(true);
         m_rigIsPossessed = false;
+        EnableTeleporting();
     }
 
-    private IEnumerator PossessionSequence(GameObject rig, float fadeTime, GameObject removeObject)
+    private IEnumerator PossessionSequence(GameObject rig, float fadeTime, GameObject[] removeObject)
     {        
         DisableTeleporting();
         SteamVR_Fade.Start(Color.black, fadeTime);
+        AudioManager.instance.FadeOutMusic(fadeTime);
         yield return new WaitForSeconds(fadeTime);
 
         ToggleHands(false);
         rig.SetActive(true);
         if(removeObject != null)
         {
-            removeObject.SetActive(false);
+            foreach(GameObject go in removeObject)
+            {
+                go.SetActive(false);
+            }            
         }
         m_rigIsPossessed = true;
 
+        yield return new WaitForSeconds(1.5f);
+
         Color m_simColor = new Color(0.2f, 0, 0, 0.2f);
         SteamVR_Fade.Start(m_simColor, fadeTime);
+        AudioManager.instance.SwapMusicAndFade(m_PossessionMusic, fadeTime);
+        DisableTeleporting();
         yield return new WaitForSeconds(fadeTime);
-        EnableTeleporting();        
     }
 
     private void ToggleHands(bool state)
@@ -241,13 +275,15 @@ public class GameManager : MonoBehaviour {
 
     private void DisableTeleporting()
     {
-        m_teleportPolicyList.identifiers = new List<string>();
+        m_teleporter.blinkTransitionSpeed = 0f;
+        //m_teleportPolicyList.identifiers = new List<string>();
     }
 
     private void EnableTeleporting()
     {
-        List<string> identifiers = new List<string>();
-        identifiers.Add("TeleportSurface");
-        m_teleportPolicyList.identifiers = identifiers;
+        m_teleporter.blinkTransitionSpeed = 0.6f;
+        //List<string> identifiers = new List<string>();
+        //identifiers.Add("TeleportSurface");
+        //m_teleportPolicyList.identifiers = identifiers;
     }
 }
